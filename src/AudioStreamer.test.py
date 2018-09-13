@@ -8,7 +8,7 @@ class AudioStreamerTest(unittest.TestCase):
   
   # AudioStreamer is able to download a single regular file from a url
   def test_get_file(self):
-    self.assertIsNotNone(self.streamer.getFile('https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png'))
+    self.assertIsNotNone(self.streamer.getFile('https://www.google.com/'))
 
   # AudioStreamer should be able to get data from a text stream
   def test_get_text_stream(self):
@@ -16,7 +16,8 @@ class AudioStreamerTest(unittest.TestCase):
 
   # AudioStreamer should get audio file streams from urls
   def test_get_audio_stream(self):
-    self.assertIsNotNone(self.streamer.getAudioFileStream(audioStreamUrl))
+    self.assertIsNotNone(self.streamer.getAudioFileStream(self.audioStreamUrl))
+
 
 if __name__ == '__main__':
     unittest.main()

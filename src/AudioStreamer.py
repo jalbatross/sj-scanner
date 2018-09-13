@@ -1,10 +1,12 @@
 import json
 import requests
+import threading
+import time
+import sys
 
 from pydub import AudioSegment
-from pydub.playback import play
-
-import io
+from datetime import datetime
+from pathlib import Path
 
 class AudioStreamer:
 
@@ -27,18 +29,76 @@ class AudioStreamer:
 
   def getAudioFileStream(self, streamUrl):
     r = requests.get(streamUrl, stream=True)
-    maxChunks = 1000
-
+    
+    maxChunks = 4096
     chunks = 0
-    with open('somedata', 'wb') as fd:
-      for chunk in r.iter_content(chunk_size=128):
-        fd.write(chunk)
-        chunks += 1
+    threshold = 0
+    dataBuffer = []
 
-        if (chunks > maxChunks):
-          break
+    for chunk in r.iter_content(chunk_size=512):
+      
+      threshold = threshold + self.processAudio(chunk)
 
-    return fd
+      if (threshold <= 0):
+        threshold = 0
+        if (len(dataBuffer) <= 0):
+          continue
+        else:
+          copiedBuf = dataBuffer[:]
+          dataBuffer = []
+          t = threading.Thread(target=self.buildAudioFile, args=(copiedBuf,))
+          t.start()
+          continue
+
+      # otherwise there was sound
+      print(chunks, ' thresh: ', threshold)
+      dataBuffer.append(chunk)
+
+      chunks += 1
+
+      if (chunks > maxChunks):
+        break
+
+    return 0
+
+  def processAudio(self, data):
+    temp = open('temp', 'wb')
+    temp.write(data)
+    temp.close()
+
+    try:
+      audio = AudioSegment.from_mp3('temp')
+
+      if (audio.max >= 1000):
+        return 10
+      else:
+        return -10
+
+    except:
+      return 0
+
+    #print(' max vol: ',audio.max, ' was max vol')
+
+  ###
+  # buf is an iterable of mp3 data chunks
+  #
+  def buildAudioFile(self, buf):
+    fileTitle = str(datetime.now())
+    path = Path('audioLogs/%s.mp3' % fileTitle)
+    try:
+      with open(path, 'wb') as fd:
+        for data in buf:
+          fd.write(data)
+    except:
+      print("Unexpected error:", sys.exc_info()[0])
+      return False
+
+    return True
+
+
+
+
+
 
 
 
